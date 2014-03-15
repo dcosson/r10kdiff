@@ -3,7 +3,7 @@
 require 'optparse'
 require 'set'
 
-class Puppetfile
+class PuppetfileDSL
   def initialize(puppetfile_text)
     @forge = 'forge.puppetlabs.com'
     @modules = {}
@@ -17,8 +17,8 @@ class Puppetfile
 
   def mod(name, args={})
     args = {:ref => args} if args.is_a? String
-    args = {:ref => "master"} unless args && args.has_key?(:ref)
-    args[:forge] = "https://#{@forge}/#{name}" unless args[:git]
+    args[:ref] = "master" unless args[:ref]
+    args[:forge] = "https://#{@forge}/#{name}"
     @modules[name] = PuppetModule.new name, args
   end
 end
@@ -30,10 +30,41 @@ class PuppetModule
     @git = git
     @forge = forge
   end
-  attr_reader :name, :ref, :git
+  attr_reader :name, :ref
+
+  def git?
+    !!@git
+  end
 
   def different?(other_module)
+    # Note that forge & git r10k modules have different naming convention so
+    # we don't need to compare url (forge is user/modulename and git is just
+    # modulename with :git attr as the url of the module
     @ref != other_module.ref
+  end
+
+  def pretty_version_diff(other_module, include_url)
+    basic_compare = "#{ref} -> #{other_module.ref}"
+
+    # special case for github - generate compate url
+    if git? && other_module.git? && include_url
+      return "#{name} #{git_https}/compare/#{ref}...#{other_module.ref}"
+
+    elsif include_url
+      return "#{name} #{basic_compare} (#{web_url})"
+    else
+      return "#{name} #{basic_compare}"
+    end
+  end
+
+  def pretty_version(include_url)
+    basic_string = "#{name} at #{ref}"
+    if include_url
+      return "#{basic_string} (#{web_url})"
+    else
+      return basic_string
+    end
+
   end
 
   def git_https
@@ -47,7 +78,7 @@ class PuppetModule
   end
 
   def web_url
-    return @forge ? @forge : git_https
+    return git? ? git_https : @forge
   end
 end
 
@@ -85,7 +116,8 @@ class PuppetfileDiff
     removals
   end
 
-  def print_puppetfile_changes
+  def print_differences(include_url)
+    # Print the additions, removals, and changes
     output = []
     puppetfile_changes = false
     if removals.length > 0
@@ -93,7 +125,7 @@ class PuppetfileDiff
       output << "Remove:"
     end
     removals.each do |old|
-      output << "    #{old.name} #{old.web_url}"
+      output << "    #{old.pretty_version(include_url)}"
     end
 
     if additions.length > 0
@@ -101,7 +133,7 @@ class PuppetfileDiff
       output << "Add:"
     end
     additions.each do |new|
-      output << "    #{new.name} #{new.web_url}"
+      output << "    #{new.pretty_version(include_url)}"
     end
 
     if changes.length > 0
@@ -109,28 +141,28 @@ class PuppetfileDiff
       output << "Change:"
     end
     changes.each do |old, new|
-      if new.git
-        output << "    #{new.name} #{old.git_https}/compare/#{old.ref}...#{new.ref}"
-      else
-        output << "    #{new.name} (#{new.web_url}) change #{old.ref} -> #{new.ref}"
-      end
+      output << "    #{new.pretty_version_diff(old, include_url)}"
     end
 
     if !puppetfile_changes
       output << "No changes in Puppetfile"
     end
 
-    print output.join('\n')
+    output.each { |x| puts x }
   end
 end
 
 
 if __FILE__ == $0
+  include_urls = false
   opt_parser = OptionParser.new do |opt|
     opt.banner = "Usage: r10k-diff [previous-ref] [current-ref]"
     opt.on("-h", "--help", "help") do
       puts opt_parser
       exit
+    end
+    opt.on("-u", "--urls") do
+      include_urls = true
     end
   end
   opt_parser.parse!
@@ -143,7 +175,7 @@ if __FILE__ == $0
     oldref = "origin/#{branch_name}"
     newref = branch_name
   end
-  oldfile_raw = Puppetfile.new(`git show #{oldref}:Puppetfile`)
-  newfile_raw = Puppetfile.new(`git --no-pager show #{newref}:Puppetfile`)
-  PuppetfileDiff.new(oldfile_raw, newfile_raw).print_puppetfile_changes
+  oldfile_raw = PuppetfileDSL.new(`git show #{oldref}:Puppetfile`)
+  newfile_raw = PuppetfileDSL.new(`git --no-pager show #{newref}:Puppetfile`)
+  PuppetfileDiff.new(oldfile_raw, newfile_raw).print_differences(include_urls)
 end
