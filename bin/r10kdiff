@@ -1,0 +1,4 @@
+#!/usr/bin/env ruby -w
+
+require 'r10kdiff'
+R10kDiff::Commandline.run
