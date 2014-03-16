@@ -155,12 +155,22 @@ module R10kDiff
     def self.run
       include_urls = false
       opt_parser = OptionParser.new do |opt|
-        opt.banner = "Usage: r10k-diff [previous-ref] [current-ref]"
-        opt.on("-h", "--help", "help") do
+
+      opt.banner = <<-EOF
+Usage: r10kdiff [previous-ref] [current-ref]
+
+Run from a git repository containing a Puppetfile.
+
+    previous-ref and current-ref are the git refs to compare
+        (optional, default to origin/BRANCH and BRANCH
+         where BRANCH is the currently checked-out git branch name)
+
+EOF
+        opt.on("-h", "--help", "show help dialogue") do
           puts opt_parser
           exit
         end
-        opt.on("-u", "--urls") do
+        opt.on("-u", "--urls", "Include urls and github compare links in output") do
           include_urls = true
         end
       end
