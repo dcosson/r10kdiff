@@ -5,7 +5,11 @@ A small script for comparing r10k Puppetfiles between different git refs.
 
 It's helpful for a development workflow with puppet r10k and Github as the output is slightly nicer than 'git diff' and it can generate github compare links for the full changesets represented by a change to a Puppetfile.
 
-## Usage
+### Install
+
+    gem install r10kdiff
+
+### Usage
 
     $ r10kdiff -h
     Usage: r10kdiff [previous-ref] [current-ref]
@@ -39,3 +43,13 @@ In this example if "development" branch is checked out, the following is the sam
         foobar at 0.4.0 (https://github.com/dcosson/puppet-foobar)
     Change:
         blerg https://github.com/dcosson/puppet-blerg/compare/0.1.1...0.1.2
+
+### In Pull Requests
+
+The primary purpose of this gem was to be able to generate diffs to include in pull requests for teammates to easily review before merging r10k changes.
+
+To open the PR from the command line, I create a git alias that runs a script like [this one](https://gist.github.com/dcosson/9591444).
+
+### License
+
+MIT
