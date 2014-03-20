@@ -140,7 +140,7 @@ module R10kDiff
         output << "Change:"
       end
       changes.each do |old, new|
-        output << "    #{new.pretty_version_diff(old, include_url)}"
+        output << "    #{old.pretty_version_diff(new, include_url)}"
       end
 
       if !puppetfile_changes
