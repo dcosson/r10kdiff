@@ -4,7 +4,7 @@ require 'set'
 module R10kDiff
   class PuppetfileDSL
     def initialize(puppetfile_text)
-      @forge = 'forge.puppetlabs.com'
+      @forge = 'forge.puppet.com'
       @modules = {}
       eval(puppetfile_text)
     end
@@ -23,13 +23,13 @@ module R10kDiff
   end
 
   class PuppetModule
-    def initialize(name, ref:nil, git:nil, forge:nil)
+    def initialize(name, ref:nil, git:nil, forge:nil, tag:nil, commit:nil, branch:nil)
       @name = name
       @ref = ref
       @git = git
       @forge = forge
     end
-    attr_reader :name, :ref
+    attr_reader :name, :ref, :tag, :commit, :branch
 
     def git?
       !!@git
